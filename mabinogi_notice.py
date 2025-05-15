@@ -10,7 +10,7 @@ DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1372477208156835870/T2YP
 
 # 📌 Google Sheets 인증 및 열기
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name("rpapython-444406-625556863734.json", scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name("rpa_creds.json", scope)
 client = gspread.authorize(creds)
 
 # 📌 시트 열기 (문서 ID 고정, 시트 탭 이름: 공지내역)
