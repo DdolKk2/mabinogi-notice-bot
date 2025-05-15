@@ -1,4 +1,4 @@
-selenium
+requests
+beautifulsoup4
 gspread
 oauth2client
-requests
