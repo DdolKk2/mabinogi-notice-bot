@@ -1,6 +1,8 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import time
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import requests
@@ -17,7 +19,7 @@ client = gspread.authorize(creds)
 spreadsheet = client.open_by_key("1EW1exkPc8hO90_I2awNgJ12LPsUzIh143er7_6UyqHQ")
 sheet = spreadsheet.worksheet("공지내역")
 
-# 📌 기존 공지 제목과 링크 불러오기
+# 📌 기존 공지 제목 가져오기 (중복 제거용)
 existing_records = sheet.get_all_values()[1:]  # 헤더 제외
 existing_titles = {row[0] for row in existing_records if len(row) > 0}  # A열 제목
 existing_links = {row[2] for row in existing_records if len(row) > 2}  # C열 링크
@@ -29,11 +31,20 @@ options.add_argument("--disable-gpu")
 options.add_argument("--no-sandbox")
 options.add_argument("--lang=ko-KR")
 options.add_argument("user-agent=Mozilla/5.0")
-options.add_argument("window-size=1920x1080")
+options.add_argument("window-size=1920x1080")  # Headless 환경에서 필요!
 
 driver = webdriver.Chrome(options=options)
 driver.get("https://mabinogimobile.nexon.com/News/Notice")
-time.sleep(3)
+
+# 공지 목록이 나타날 때까지 최대 15초 대기
+try:
+    WebDriverWait(driver, 15).until(
+        EC.presence_of_element_located((By.XPATH, '//*[@id="mabinogim"]/div[2]/section[2]/div/ul/li[1]'))
+    )
+except:
+    print("❌ 공지 리스트를 로딩할 수 없습니다.")
+    driver.quit()
+    exit(1)
 
 notices = []
 
@@ -43,21 +54,21 @@ for i in range(1, 11):
         base_xpath = f'//*[@id="mabinogim"]/div[2]/section[2]/div/ul/li[{i}]'
 
         # 공지 ID → URL 생성
-        li_elem = driver.find_element("xpath", base_xpath)
+        li_elem = driver.find_element(By.XPATH, base_xpath)
         notice_id = li_elem.get_attribute("data-threadid")
         link = f"https://mabinogimobile.nexon.com/News/Notice/{notice_id}"
 
         # 제목
         title_xpath = f"{base_xpath}/div[1]/a/span"
-        title_elem = driver.find_element("xpath", title_xpath)
+        title_elem = driver.find_element(By.XPATH, title_xpath)
         title = title_elem.text.strip()
 
         # 날짜
         date_xpath = f"{base_xpath}/div[2]/div[2]/div[2]"
-        date_elem = driver.find_element("xpath", date_xpath)
+        date_elem = driver.find_element(By.XPATH, date_xpath)
         date = date_elem.text.strip()
 
-        # 제목 중복 제거 기준으로 저장
+        # 제목 중복 체크
         if title not in existing_titles:
             notices.append((title, date, link))
 
@@ -68,7 +79,6 @@ driver.quit()
 
 # 📌 새 공지 알림 + 시트에 누적 추가
 for title, date, link in notices:
-    # 디스코드 전송
     message = f"📢 **{title}**\n📅 `{date}`\n🔗 [공지 바로가기]({link})"
     requests.post(DISCORD_WEBHOOK_URL, json={"content": message})
 
