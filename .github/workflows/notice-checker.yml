@@ -2,7 +2,7 @@ name: Mabinogi Notice Watcher
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # 매 30분마다 실행 (UTC 기준)
+    - cron: '*/30 * * * *'  # every 30 minutes UTC
   workflow_dispatch:
 
 jobs:
@@ -10,20 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install dependencies
-      run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-    - name: Run script
-      env:
-        GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
-      run: |
-        echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > rpa_creds.json
-        python mabinogi_notice.py
+      - name: Install Playwright Browsers
+        run: playwright install chromium
+
+      - name: Run notice bot
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
+        run: |
+          echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > rpa_creds.json
+          python mabinogi_notice.py
